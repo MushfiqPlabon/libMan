@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.utils import timezone
@@ -8,18 +8,23 @@ from .serializers import AuthorSerializer, MemberSerializer, BookSerializer, Bor
 class AuthorViewSet(viewsets.ModelViewSet):
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
+    permission_classes = [permissions.IsAdminUser]
 
 class MemberViewSet(viewsets.ModelViewSet):
     queryset = Member.objects.all()
     serializer_class = MemberSerializer
+    permission_classes = [permissions.IsAdminUser]
 
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 class BorrowRecordViewSet(viewsets.ModelViewSet):
     queryset = BorrowRecord.objects.all()
     serializer_class = BorrowRecordSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    # ... (rest of the code)
 
     @action(detail=False, methods=['post'], url_path='borrow')
     def borrow_book(self, request):
@@ -50,10 +55,13 @@ class BorrowRecordViewSet(viewsets.ModelViewSet):
         except BorrowRecord.DoesNotExist:
             return Response({'error': 'Active borrow record not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+        book = borrow_record.book
+        if book.availability_status:
+            return Response({'error': 'Book is already available.'}, status=status.HTTP_400_BAD_REQUEST)
+
         borrow_record.return_date = timezone.now().date()
         borrow_record.save()
 
-        book = borrow_record.book
         book.availability_status = True
         book.save()
         serializer = self.get_serializer(borrow_record)
