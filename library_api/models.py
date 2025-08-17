@@ -7,7 +7,10 @@ class Author(models.Model):
     def __str__(self):
         return self.name
 
+from django.contrib.auth.models import User
+
 class Member(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=200)
     email = models.EmailField(unique=True)
     membership_date = models.DateField(auto_now_add=True)
@@ -26,8 +29,8 @@ class Book(models.Model):
         return self.title
 
 class BorrowRecord(models.Model):
-    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='borrow_records')
-    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='borrow_records')
+    book = models.ForeignKey(Book, on_delete=models.SET_NULL, null=True, related_name='borrow_records')
+    member = models.ForeignKey(Member, on_delete=models.SET_NULL, null=True, related_name='borrow_records')
     borrow_date = models.DateField(auto_now_add=True)
     return_date = models.DateField(null=True, blank=True)
 
